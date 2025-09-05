@@ -27,6 +27,7 @@ public class RecipeRunnerYaml : IRecipeRunner
 
         var recipe = RecipeLoader.Load(recipePath);
         var written = new List<string>();
+        var recipeDir = OutputPathUtil.GetRecipeDirectory(recipePath, recipe, outputRoot);
 
         foreach (var step in recipe.Steps)
         {
@@ -36,7 +37,15 @@ public class RecipeRunnerYaml : IRecipeRunner
             if (string.IsNullOrEmpty(result))
                 result = step.Prompt;
 
-            var file = Path.Combine(outputRoot, $"{step.Name}.txt");
+            var safe = OutputPathUtil.SafeSegment(step.Name);
+            var file = Path.Combine(recipeDir, $"{safe}.txt");
+            file = OutputPathUtil.EnsureUniqueFile(file);
+
+            var fullFile = Path.GetFullPath(file);
+            var fullDir = Path.GetFullPath(recipeDir);
+            if (!fullFile.StartsWith(fullDir, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Output file escaped recipe directory");
+
             await File.WriteAllTextAsync(file, result, ct);
             Console.WriteLine($"Wrote: {file}");
             written.Add(file);

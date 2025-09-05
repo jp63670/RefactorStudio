@@ -1,63 +1,47 @@
-using Microsoft.Maui.Storage;
-using RefactorStudio.Adapters;
-using RefactorStudio.Core.Services;
-using System.Collections.Generic;
+using System;
 using System.IO;
+using Microsoft.Maui.Controls;
 
 namespace RefactorStudio.App;
 
 public partial class MainPage : ContentPage
 {
-    int count = 0;
+    private readonly RunRecipeService _service;
 
-    public MainPage()
+    public MainPage(RunRecipeService service)
     {
         InitializeComponent();
+        _service = service;
     }
 
-    private void OnCounterClicked(object? sender, EventArgs e)
+    private async void OnRunSample(object? sender, EventArgs e)
     {
-        count++;
-
-        if (count == 1)
-            CounterBtn.Text = $"Clicked {count} time";
-        else
-            CounterBtn.Text = $"Clicked {count} times";
-
-        SemanticScreenReader.Announce(CounterBtn.Text);
+        var sample = Path.Combine("RefactorStudio.Recipes", "samples", "echo.yaml");
+        await _service.RunAsync(sample);
     }
 
-    private async void OnRunRecipeClicked(object? sender, EventArgs e)
+    private async void OnRunFromPath(object? sender, EventArgs e)
     {
-        try
+        var path = await DisplayPromptAsync("Run from Path", "Enter absolute .yaml path:");
+        if (!string.IsNullOrWhiteSpace(path))
+            await _service.RunAsync(path);
+    }
+
+    private async void OnChooseOutputFolder(object? sender, EventArgs e)
+    {
+        var folder = await DisplayPromptAsync("Choose Output Folder", "Enter absolute folder path:");
+        if (!string.IsNullOrWhiteSpace(folder))
+            _service.SetOutputRoot(folder);
+    }
+
+    private async void OnBrowse(object? sender, EventArgs e)
+    {
+        var path = await _service.BrowseForRecipeAsync();
+        if (string.IsNullOrWhiteSpace(path))
         {
-            var file = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = "Select recipe",
-                FileTypes = new FilePickerFileType(new Dictionary<Microsoft.Maui.Devices.DevicePlatform, IEnumerable<string>>
-                {
-                    { Microsoft.Maui.Devices.DevicePlatform.WinUI, new[] { ".yaml", ".yml" } },
-                    { Microsoft.Maui.Devices.DevicePlatform.Unknown, new[] { ".yaml", ".yml" } }
-                })
-            });
-
-            if (file == null)
-                return;
-
-            var recipePath = Path.GetFullPath(file.FullPath);
-            var recipeName = Path.GetFileNameWithoutExtension(recipePath);
-            var outputRoot = Path.Combine("outputs", recipeName);
-            Directory.CreateDirectory(outputRoot);
-
-            var adapter = new EchoAdapter();
-            IRecipeRunner runner = new RecipeRunnerYaml(adapter);
-            await runner.RunAsync(recipePath, outputRoot);
+            await OnRunFromPath(sender, e);
+            return;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex);
-            await DisplayAlert("Error", ex.Message, "OK");
-        }
+        await _service.RunAsync(path);
     }
 }
-
