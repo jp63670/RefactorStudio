@@ -35,6 +35,8 @@ public class RecipeRunnerTests
             var output2 = Path.Combine(dir, "step2.txt");
             Assert.True(File.Exists(output1));
             Assert.True(File.Exists(output2));
+            Assert.Contains(output1, recipe.Steps[0].Outputs);
+            Assert.Contains(output2, recipe.Steps[1].Outputs);
             Assert.Equal("p1-result", await File.ReadAllTextAsync(output1));
             Assert.Equal("p2-result", await File.ReadAllTextAsync(output2));
         }
