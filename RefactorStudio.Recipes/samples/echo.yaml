@@ -1,0 +1,8 @@
+id: echo
+version: "1"
+description: Echo sample recipe
+steps:
+  - name: first
+    prompt: "Hello"
+  - name: second
+    prompt: "World"

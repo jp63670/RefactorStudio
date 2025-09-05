@@ -22,4 +22,9 @@
     <PackageReference Include="Microsoft.Maui.Graphics.Win2D.WinUI.Desktop" Version="8.*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\RefactorStudio.Core\RefactorStudio.Core.csproj" />
+    <ProjectReference Include="..\RefactorStudio.Adapters\RefactorStudio.Adapters.csproj" />
+  </ItemGroup>
 </Project>
