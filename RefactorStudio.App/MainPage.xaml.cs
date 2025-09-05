@@ -45,35 +45,19 @@ public partial class MainPage : ContentPage
                 return;
 
             var recipePath = Path.GetFullPath(file.FullPath);
-            Console.WriteLine($"Selected recipe path: {recipePath}");
-
-            var outputRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RefactorStudio", "outputs");
-            Console.WriteLine($"Output root: {outputRoot}");
-
-            var safeName = MakeSafeName(Path.GetFileNameWithoutExtension(recipePath));
-            var recipeDir = Path.Combine(outputRoot, safeName);
-            Directory.CreateDirectory(recipeDir);
-            Console.WriteLine($"Per-recipe folder: {recipeDir}");
+            var recipeName = Path.GetFileNameWithoutExtension(recipePath);
+            var outputRoot = Path.Combine("outputs", recipeName);
+            Directory.CreateDirectory(outputRoot);
 
             var adapter = new EchoAdapter();
             IRecipeRunner runner = new RecipeRunnerYaml(adapter);
-            await runner.RunAsync(recipePath, recipeDir);
-        }
-        catch (OperationCanceledException)
-        {
-            // user cancelled; no-op
+            await runner.RunAsync(recipePath, outputRoot);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.ToString());
-            await DisplayAlert("Run Recipe failed", ex.Message, "OK");
+            Console.WriteLine(ex);
+            await DisplayAlert("Error", ex.Message, "OK");
         }
     }
-
-    private static string MakeSafeName(string name)
-    {
-        foreach (var c in Path.GetInvalidFileNameChars())
-            name = name.Replace(c, '_');
-        return name;
-    }
 }
+
