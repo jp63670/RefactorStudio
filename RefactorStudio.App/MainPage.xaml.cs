@@ -29,24 +29,35 @@ public partial class MainPage : ContentPage
 
         private async void OnRunRecipeClicked(object? sender, EventArgs e)
         {
-                var file = await FilePicker.Default.PickAsync(new PickOptions
+                try
                 {
-                        PickerTitle = "Select recipe",
-                        FileTypes = new FilePickerFileType(new Dictionary<Microsoft.Maui.Devices.DevicePlatform, IEnumerable<string>>
+                        var file = await FilePicker.Default.PickAsync(new PickOptions
                         {
-                                { Microsoft.Maui.Devices.DevicePlatform.WinUI, new[] { ".yaml", ".yml" } },
-                                { Microsoft.Maui.Devices.DevicePlatform.Unknown, new[] { ".yaml", ".yml" } }
-                        })
-                });
-                if (file == null)
-                        return;
+                                PickerTitle = "Select recipe",
+                                FileTypes = new FilePickerFileType(new Dictionary<Microsoft.Maui.Devices.DevicePlatform, IEnumerable<string>>
+                                {
+                                        { Microsoft.Maui.Devices.DevicePlatform.WinUI, new[] { ".yaml", ".yml" } },
+                                        { Microsoft.Maui.Devices.DevicePlatform.Unknown, new[] { ".yaml", ".yml" } }
+                                })
+                        });
 
-                if (!file.FullPath.Contains(Path.Combine("RefactorStudio.Recipes", "samples")))
-                        return;
+                        if (file == null)
+                                return;
 
-                var recipe = RecipeLoader.Load(file.FullPath);
-                var adapter = new EchoAdapter();
-                var runner = new RecipeRunnerYaml(adapter);
-                await runner.RunAsync(recipe);
+                        var recipePath = Path.GetFullPath(file.FullPath);
+                        Console.WriteLine($"Selected recipe path: {recipePath}");
+
+                        var outputRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RefactorStudio", "outputs");
+                        Console.WriteLine($"Output root: {outputRoot}");
+
+                        var adapter = new EchoAdapter();
+                        IRecipeRunner runner = new RecipeRunnerYaml(adapter);
+                        await runner.RunAsync(recipePath, outputRoot);
+                }
+                catch (Exception ex)
+                {
+                        Console.WriteLine(ex);
+                        await DisplayAlert("Run Recipe failed", ex.Message, "OK");
+                }
         }
 }
