@@ -24,6 +24,7 @@ public class RecipeRunnerYamlTests
         try
         {
             outputs = await runner.RunAsync(tempRecipe, outputRoot);
+            Assert.True(Directory.Exists(outputRoot));
             Assert.NotEmpty(outputs);
             foreach (var file in outputs)
             {
