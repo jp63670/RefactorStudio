@@ -20,6 +20,7 @@ public class RecipeRunnerYaml
             var result = await _adapter.ExecuteAsync(step.Prompt);
             var file = Path.Combine(baseDir, $"{step.Name}.txt");
             await File.WriteAllTextAsync(file, result);
+            step.Outputs.Add(file);
         }
     }
 }
