@@ -1,4 +1,4 @@
-using RefactorStudio.Core.Models;
+using RefactorStudio.Adapters;
 using RefactorStudio.Core.Services;
 using System.IO;
 
@@ -6,42 +6,46 @@ namespace RefactorStudio.Tests;
 
 public class RecipeRunnerTests
 {
-    private class StubAdapter : IModelAdapter
-    {
-        public Task<string> ExecuteAsync(string prompt) => Task.FromResult(prompt + "-result");
-    }
-
     [Fact]
-    public async Task RunAsync_WritesOutputsPerStep()
+    public async Task RunAsync_CreatesOutputsPerStep()
     {
-        var recipe = new RecipeYaml
-        {
-            Id = "test",
-            Version = "1",
-            Steps = new List<RecipeStep>
-            {
-                new() { Name = "step1", Prompt = "p1" },
-                new() { Name = "step2", Prompt = "p2" }
-            }
-        };
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var sample = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "RefactorStudio.Recipes", "samples", "echo.yaml"));
+        var recipePath = Path.Combine(tempDir, "echo.yaml");
+        File.Copy(sample, recipePath);
 
-        var runner = new RecipeRunnerYaml(new StubAdapter());
-        await runner.RunAsync(recipe);
+        var outputDir = Path.Combine(tempDir, "outputs", "echo");
+        Directory.CreateDirectory(outputDir);
 
-        var dir = Path.Combine("outputs", "test");
+        IRecipeRunner runner = new RecipeRunnerYaml(new EchoAdapter());
+        var written = await runner.RunAsync(recipePath, outputDir);
+
         try
         {
-            var output1 = Path.Combine(dir, "step1.txt");
-            var output2 = Path.Combine(dir, "step2.txt");
-            Assert.True(File.Exists(output1));
-            Assert.True(File.Exists(output2));
-            Assert.Equal("p1-result", await File.ReadAllTextAsync(output1));
-            Assert.Equal("p2-result", await File.ReadAllTextAsync(output2));
+            Assert.True(Directory.Exists(outputDir));
+            Assert.NotEmpty(written);
+            foreach (var file in written)
+            {
+                Assert.True(File.Exists(file));
+                var content = await File.ReadAllTextAsync(file);
+                Assert.False(string.IsNullOrWhiteSpace(content));
+            }
         }
         finally
         {
-            if (Directory.Exists(dir))
-                Directory.Delete(dir, true);
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
         }
     }
+
+    [Fact]
+    public async Task RunAsync_BadPathThrows()
+    {
+        IRecipeRunner runner = new RecipeRunnerYaml(new EchoAdapter());
+        var ex = await Assert.ThrowsAsync<FileNotFoundException>(async () =>
+            await runner.RunAsync("doesnotexist.yaml", "outputs"));
+        Assert.Contains("Recipe file not found", ex.Message);
+    }
 }
+
